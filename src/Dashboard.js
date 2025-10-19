@@ -1,230 +1,384 @@
 import React, { useEffect, useState } from 'react';
 import { database, auth } from './firebase';
-import { ref, onValue } from "firebase/database";
+import { ref, onValue, set, push } from "firebase/database";
 import { signOut } from "firebase/auth";
 
+// 🕓 Format date and time
 function formatDateTime(timestamp) {
-  const d = new Date(timestamp);
+  if (!timestamp) return { date: "N/A", time: "N/A" };
+  const tsNum = Number(timestamp);
+  if (isNaN(tsNum) || tsNum <= 0) return { date: "N/A", time: "N/A" };
+
+  const d = new Date(tsNum * 1000);
+  if (isNaN(d.getTime())) return { date: "N/A", time: "N/A" };
+
   const date = d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
   const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
   return { date, time };
 }
 
-function CircleProgress({ current, max, label }) {
-  const radius = 40;
+// 🔁 Reset stock button
+function resetCount(servoCode) {
+  if (window.confirm(`Reset stock for ${servoCode}?`)) {
+    set(ref(database, `/deviceData/${servoCode}`), 0)
+      .then(() => alert(`${servoCode} stock reset.`))
+      .catch(err => alert(`Error: ${err.message}`));
+  }
+}
+
+// ⚙️ Circle Progress for Medicine
+function CircleProgress({ current, max }) {
+  const radius = 35;
   const stroke = 8;
   const normalizedRadius = radius - stroke * 2;
   const circumference = normalizedRadius * 2 * Math.PI;
   const strokeDashoffset = circumference - (current / max) * circumference;
 
+  const color =
+    current >= 15 ? "#dc2626" :        // Red (Out of stock)
+    current >= 10 ? "#f59e0b" :        // Yellow (Low stock)
+    "#0ea5e9";                         // Blue (Normal)
+
   return (
-    <div className="flex flex-col items-center mx-3">
-      <svg height={radius * 2} width={radius * 2}>
-        <circle
-          stroke="#ddd"
-          fill="transparent"
-          strokeWidth={stroke}
-          r={normalizedRadius}
-          cx={radius}
-          cy={radius}
-        />
-        <circle
-          stroke="#3b82f6"
-          fill="transparent"
-          strokeWidth={stroke}
-          strokeDasharray={circumference + ' ' + circumference}
-          style={{ strokeDashoffset, transition: 'stroke-dashoffset 0.35s' }}
-          strokeLinecap="round"
-          r={normalizedRadius}
-          cx={radius}
-          cy={radius}
-        />
-        <text
-          x="50%"
-          y="50%"
-          dominantBaseline="middle"
-          textAnchor="middle"
-          fontSize="16px"
-          fill="#333"
-          fontWeight="bold"
-        >
-          {current}/{max}
-        </text>
-      </svg>
-      <div className="mt-2 font-semibold">{label}</div>
-    </div>
+    <svg height={radius * 2} width={radius * 2}>
+      <circle
+        stroke="#e5e7eb"
+        fill="transparent"
+        strokeWidth={stroke}
+        r={normalizedRadius}
+        cx={radius}
+        cy={radius}
+      />
+      <circle
+        stroke={color}
+        fill="transparent"
+        strokeWidth={stroke}
+        strokeDasharray={circumference + ' ' + circumference}
+        style={{ strokeDashoffset, transition: 'stroke-dashoffset 0.35s' }}
+        strokeLinecap="round"
+        r={normalizedRadius}
+        cx={radius}
+        cy={radius}
+      />
+      <text
+        x="50%"
+        y="50%"
+        dominantBaseline="middle"
+        textAnchor="middle"
+        fontSize="14px"
+        fill="#111"
+        fontWeight="bold"
+      >
+        {current}/{max}
+      </text>
+    </svg>
   );
 }
 
-function GaugeChart({ value, max, label, color }) {
-  // Simple semicircle gauge using SVG arcs
-
+// 🌡️ Gauge for Temperature & Humidity
+function GaugeChart({ value, max, label, color, icon }) {
   const radius = 70;
   const strokeWidth = 14;
   const center = radius + strokeWidth;
-  const circumference = radius * Math.PI; // half circle circumference
-
-  // Calculate strokeDashoffset for value
+  const circumference = radius * Math.PI;
   const percentage = Math.min(value / max, 1);
   const strokeDashoffset = circumference * (1 - percentage);
 
   return (
-    <div className="flex flex-col items-center mx-6">
-      <svg width={center * 2} height={center + strokeWidth} >
+    <div className="flex flex-col items-center bg-white shadow rounded-2xl p-6 mx-4">
+      <svg width={center * 2} height={center + strokeWidth}>
         <path
-          d={`
-            M ${strokeWidth} ${center}
-            A ${radius} ${radius} 0 0 1 ${center * 2 - strokeWidth} ${center}
-          `}
+          d={`M ${strokeWidth} ${center} A ${radius} ${radius} 0 0 1 ${center * 2 - strokeWidth} ${center}`}
           fill="none"
-          stroke="#ddd"
+          stroke="#e5e7eb"
           strokeWidth={strokeWidth}
           strokeLinecap="round"
         />
         <path
-          d={`
-            M ${strokeWidth} ${center}
-            A ${radius} ${radius} 0 0 1 ${center * 2 - strokeWidth} ${center}
-          `}
+          d={`M ${strokeWidth} ${center} A ${radius} ${radius} 0 0 1 ${center * 2 - strokeWidth} ${center}`}
           fill="none"
           stroke={color}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
-          style={{ transition: 'stroke-dashoffset 0.5s ease' }}
+          style={{ transition: "stroke-dashoffset 0.5s ease" }}
         />
         <text
           x="50%"
           y={center / 1.2}
           textAnchor="middle"
-          fontSize="24px"
-          fill="#333"
+          fontSize="22px"
+          fill="#111"
           fontWeight="bold"
         >
           {Math.round(value)}
         </text>
       </svg>
-      <div className="mt-2 font-semibold">{label}</div>
+      <div className="mt-3 flex items-center gap-2 text-gray-700 font-semibold">
+        <span className="material-icons text-xl" style={{ color }}>
+          {icon}
+        </span>
+        {label}
+      </div>
     </div>
   );
 }
 
+// 📊 MAIN DASHBOARD
 export default function Dashboard() {
   const [temp, setTemp] = useState(0);
   const [hum, setHum] = useState(0);
-  const [coinTotal, setCoinTotal] = useState(0);
   const [servoCounts, setServoCounts] = useState({ M1: 0, M2: 0, M3: 0, M4: 0, M5: 0 });
   const [servoLogs, setServoLogs] = useState([]);
+  const [notifications, setNotifications] = useState([]);
 
+  // Fetch from Firebase
   useEffect(() => {
-    // Listen to realtime database path
-    const pathRef = ref(database, '/deviceData');
+    const deviceRef = ref(database, "/deviceData");
+    const logsRef = ref(database, "/deviceData/logs");
+    const notifRef = ref(database, "/notifications");
 
-    onValue(pathRef, (snapshot) => {
+    onValue(deviceRef, (snapshot) => {
       const data = snapshot.val();
       if (!data) return;
-
-      // Update basic values
       setTemp(data.temperature || 0);
       setHum(data.humidity || 0);
-      setCoinTotal(data.coinTotal || 0);
-
-      // Update servo counts
-      const counts = {
+      setServoCounts({
         M1: data.M1 || 0,
         M2: data.M2 || 0,
         M3: data.M3 || 0,
         M4: data.M4 || 0,
         M5: data.M5 || 0,
-      };
-      setServoCounts(counts);
-
-      // For the table with logs:
-      // Since Arduino code only stores count, no logs on firebase,
-      // we must create logs from counts + timestamp logic here.
-      // We will simulate logs by generating entries based on counts and current time.
-
-      // *** Ideally, your Arduino should send each event with a timestamp for accurate logs.
-      // Since it doesn't, we simulate logs backwards counting from now.
-
-      // Create logs array with separate entries for each servo count
-      let logs = [];
-
-      const now = Date.now();
-      const timeStep = 5 * 60 * 1000; // 5 minutes gap assumed between triggers
-
-      Object.entries(counts).forEach(([code, count]) => {
-        for (let i = 0; i < count; i++) {
-          // Push simulated timestamps subtracting i * timeStep + random offset
-          const ts = now - (i * timeStep) - Math.floor(Math.random() * timeStep);
-          const { date, time } = formatDateTime(ts);
-          logs.push({ code, date, time, timestamp: ts });
-        }
       });
+    });
 
-      // Sort logs descending by timestamp
-      logs.sort((a, b) => b.timestamp - a.timestamp);
+    onValue(logsRef, (snapshot) => {
+      const logsData = snapshot.val();
+      if (!logsData) {
+        setServoLogs([]);
+        return;
+      }
+      let allLogs = [];
+      for (const servoCode in logsData) {
+        const servoLogsData = logsData[servoCode];
+        for (const key in servoLogsData) {
+          allLogs.push(servoLogsData[key]);
+        }
+      }
+      allLogs.sort((a, b) => b.timestamp - a.timestamp);
+      setServoLogs(allLogs);
+    });
 
-      setServoLogs(logs);
+    onValue(notifRef, (snapshot) => {
+      const notifData = snapshot.val();
+      if (!notifData) {
+        setNotifications([]);
+        return;
+      }
+      const notifList = Object.values(notifData).sort((a, b) => b.timestamp - a.timestamp);
+      setNotifications(notifList);
     });
   }, []);
 
-  const handleLogout = () => {
-    signOut(auth);
+  // ⚠️ Notification trigger when M1–M5 reach certain levels
+  useEffect(() => {
+    Object.entries(servoCounts).forEach(([code, count]) => {
+      let message = "";
+      if (count >= 10 && count < 15) message = "Refill medicine — almost out.";
+      else if (count >= 15) message = "Medicine is out of stock.";
+
+      if (message) {
+        const timestamp = Math.floor(Date.now() / 1000);
+        const notifRef = ref(database, `/notifications`);
+        const newNotif = { code, message, timestamp };
+        push(notifRef, newNotif);
+        alert(`⚠️ ${code}: ${message}`);
+      }
+    });
+  }, [servoCounts]);
+
+  // 🔓 Logout
+  const handleLogout = () => signOut(auth);
+
+  // 📁 Export Logs to CSV
+  const downloadCSV = () => {
+    if (servoLogs.length === 0) {
+      alert("No data to export.");
+      return;
+    }
+    const headers = ["Medicine", "Date", "Time"];
+    const rows = servoLogs.map((log) => {
+      const { date, time } = formatDateTime(log.timestamp);
+      return [log.code, date, time];
+    });
+    const csvContent = [headers, ...rows].map((e) => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute("download", "medicine_logs.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
+  // 🧾 Medicine list with images
+  const medicines = [
+    { code: "M1", name: "Biogesic (Paracetamol)", img: "https://medsgo.ph/images/detailed/35/Biogesic_43iz-v8.png" },
+    { code: "M2", name: "Alaxan FR", img: "https://cdn.store-assets.com/s/377840/i/19012688.jpg" },
+    { code: "M3", name: "Decolgen Forte", img: "https://cdn.tgdd.vn/Products/Images/10022/131076/decolgen-forte-100v-2-1.jpg" },
+    { code: "M4", name: "Neozep", img: "https://assets.unilab.com.ph/uploads/Common/Neozep/Z_plus_Forte_768x768.webp" },
+    { code: "M5", name: "Tuseran Forte", img: "https://biggrocer.com.ph/wp-content/uploads/2021/06/157209-Tile-3-1536x1536.jpg" },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <header className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">ESP8266 Dashboard</h1>
+    <div className="min-h-screen bg-gray-100 p-6">
+      {/* Header */}
+      <header className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold text-teal-700 flex items-center gap-2">
+          <span className="material-icons">local_pharmacy</span> Vendo Medicine Dashboard
+        </h1>
         <button
           onClick={handleLogout}
-          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition"
+          className="bg-rose-600 text-white px-4 py-2 rounded-full hover:bg-rose-700 transition"
         >
           Logout
         </button>
       </header>
 
-      <section className="flex flex-wrap justify-center mb-8">
-        {/* Servo progress */}
-        {['M1', 'M2', 'M3', 'M4', 'M5'].map(code => (
-          <CircleProgress
-            key={code}
-            current={servoCounts[code]}
-            max={15}
-            label={code}
-          />
+      {/* 🔔 Notification Bar */}
+      {notifications.length > 0 && (
+        <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 rounded-lg p-4 mb-6">
+          <h2 className="font-semibold text-lg mb-2 flex items-center gap-2">
+            <span className="material-icons text-yellow-600">notification_important</span>
+            Notifications
+          </h2>
+          <ul className="list-disc list-inside">
+            {notifications.slice(0, 5).map((notif, i) => {
+              const { date, time } = formatDateTime(notif.timestamp);
+              return (
+                <li key={i}>
+                  <b>{notif.code}</b> — {notif.message}{" "}
+                  <span className="text-sm text-gray-500">
+                    ({date} {time})
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
+      {/* 🧮 Medicine Stock Display with Images */}
+      <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-10">
+        {medicines.map((med) => (
+          <div
+            key={med.code}
+            className="flex flex-col items-center bg-white shadow rounded-2xl p-4 w-44 hover:shadow-lg transition"
+          >
+            <img
+              src={med.img}
+              alt={med.name}
+              className="w-24 h-24 object-contain mb-3 rounded-lg"
+            />
+            <CircleProgress current={servoCounts[med.code]} max={15} />
+            <div className="mt-2 text-gray-700 font-medium text-center">{med.name}</div>
+            <button
+              onClick={() => resetCount(med.code)}
+              className="mt-3 bg-rose-500 text-white px-3 py-1 rounded-full text-xs hover:bg-rose-600"
+            >
+              Reset
+            </button>
+          </div>
         ))}
       </section>
 
-      <section className="flex justify-center mb-10">
-        <GaugeChart value={temp} max={50} label="Temperature (°C)" color="#f87171" />
-        <GaugeChart value={hum} max={100} label="Humidity (%)" color="#3b82f6" />
+      {/* 🌡️ Environment Display */}
+      <section className="flex justify-center mb-10 flex-wrap">
+        <GaugeChart value={temp} max={50} label="Storage Temp (°C)" color="#14b8a6" icon="thermostat" />
+        <GaugeChart value={hum} max={100} label="Storage Humidity (%)" color="#0ea5e9" icon="water_drop" />
       </section>
 
-      <section className="overflow-x-auto max-w-5xl mx-auto">
-        <table className="min-w-full bg-white rounded shadow">
+      {/* 🧾 Notification Table */}
+      <section className="overflow-x-auto max-w-5xl mx-auto mb-10">
+        <h2 className="text-xl font-semibold text-gray-700 flex items-center gap-2 mb-3">
+          <span className="material-icons text-amber-600">notifications</span>
+          Notification Records
+        </h2>
+        <table className="min-w-full bg-white rounded-2xl shadow overflow-hidden">
           <thead>
-            <tr className="bg-blue-600 text-white">
-              <th className="text-left py-3 px-6">Code Name</th>
+            <tr className="bg-amber-600 text-white">
+              <th className="text-left py-3 px-6">Medicine</th>
+              <th className="text-left py-3 px-6">Message</th>
               <th className="text-left py-3 px-6">Date</th>
               <th className="text-left py-3 px-6">Time</th>
             </tr>
           </thead>
           <tbody>
-            {servoLogs.length === 0 && (
+            {notifications.length === 0 ? (
               <tr>
-                <td colSpan={3} className="text-center p-4 text-gray-500">No data available</td>
+                <td colSpan={4} className="text-center p-4 text-gray-500">
+                  No notifications yet
+                </td>
               </tr>
+            ) : (
+              notifications.map((notif, i) => {
+                const { date, time } = formatDateTime(notif.timestamp);
+                return (
+                  <tr key={i} className="border-b hover:bg-gray-50">
+                    <td className="py-2 px-6">{notif.code}</td>
+                    <td className="py-2 px-6">{notif.message}</td>
+                    <td className="py-2 px-6">{date}</td>
+                    <td className="py-2 px-6">{time}</td>
+                  </tr>
+                );
+              })
             )}
-            {servoLogs.map((log, i) => (
-              <tr key={i} className="border-b hover:bg-gray-100">
-                <td className="py-2 px-6">{log.code}</td>
-                <td className="py-2 px-6">{log.date}</td>
-                <td className="py-2 px-6">{log.time}</td>
+          </tbody>
+        </table>
+      </section>
+
+      {/* 🧾 Medicine Logs Table */}
+      <section className="overflow-x-auto max-w-5xl mx-auto">
+        <div className="flex justify-between items-center mb-3">
+          <h2 className="text-xl font-semibold text-gray-700 flex items-center gap-2">
+            <span className="material-icons text-teal-600">assignment</span>
+            Medicine Logs
+          </h2>
+          <button
+            onClick={downloadCSV}
+            className="bg-emerald-600 text-white px-4 py-2 rounded-full hover:bg-emerald-700 transition shadow"
+          >
+            Export CSV
+          </button>
+        </div>
+        <table className="min-w-full bg-white rounded-2xl shadow overflow-hidden">
+          <thead>
+            <tr className="bg-teal-600 text-white">
+              <th className="text-left py-3 px-6">Medicine</th>
+              <th className="text-left py-3 px-6">Date</th>
+              <th className="text-left py-3 px-6">Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {servoLogs.length === 0 ? (
+              <tr>
+                <td colSpan={3} className="text-center p-4 text-gray-500">
+                  No data available
+                </td>
               </tr>
-            ))}
+            ) : (
+              servoLogs.map((log, i) => {
+                const { date, time } = formatDateTime(log.timestamp);
+                return (
+                  <tr key={i} className="border-b hover:bg-gray-50">
+                    <td className="py-2 px-6">{log.code}</td>
+                    <td className="py-2 px-6">{date}</td>
+                    <td className="py-2 px-6">{time}</td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </section>
