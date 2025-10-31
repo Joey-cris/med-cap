@@ -1,3 +1,10 @@
+import React, { useEffect, useState } from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { auth } from './firebase';
+import { onAuthStateChanged, signInWithEmailAndPassword } from "firebase/auth";
+import Dashboard from './Dashboard';
+import logo from 'https://www.edarabia.com/wp-content/uploads/2012/05/12.12.jpg'; 
+
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -15,54 +22,41 @@ function Login() {
   };
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center bg-cover bg-center relative"
-      style={{
-        backgroundImage:
-          "url('https://thumbs.dreamstime.com/b/medical-equipment-vending-machine-d-vector-web-banner-poster-protection-corona-virus-infection-flat-object-cartoon-212024659.jpg')",
-      }}
-    >
-      {/* Overlay to darken background for better readability */}
-      <div className="absolute inset-0 bg-black bg-opacity-30"></div>
-
-      <form
-        onSubmit={handleLogin}
-        className="relative bg-white bg-opacity-90 p-8 rounded-2xl shadow-xl max-w-sm w-full z-10 backdrop-blur-sm"
-      >
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+      <form onSubmit={handleLogin} className="bg-white p-8 rounded shadow max-w-sm w-full">
+        {/* ✅ LOGO ABOVE ADMIN LOGIN */}
         <div className="flex justify-center mb-4">
           <img
-            src={logo}
+            src="https://www.edarabia.com/wp-content/uploads/2012/05/12.12.jpg"
             alt="Southern Leyte State University Logo"
             className="w-[120px] h-[120px] object-contain"
           />
         </div>
 
-        <h2 className="text-2xl mb-6 font-semibold text-center text-gray-800">
-          Admin Login
-        </h2>
+        <h2 className="text-2xl mb-6 font-semibold text-center">Admin Login</h2>
 
         {error && <p className="mb-4 text-red-600">{error}</p>}
 
         <input
           type="email"
           placeholder="Email"
-          className="w-full p-3 border rounded mb-4 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="w-full p-3 border rounded mb-4"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={e => setEmail(e.target.value)}
           required
         />
         <input
           type="password"
           placeholder="Password"
-          className="w-full p-3 border rounded mb-6 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="w-full p-3 border rounded mb-6"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={e => setPassword(e.target.value)}
           required
         />
 
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition"
+          className="w-full bg-blue-600 text-white py-3 rounded hover:bg-blue-700 transition"
         >
           Login
         </button>
@@ -70,3 +64,41 @@ function Login() {
     </div>
   );
 }
+
+function ProtectedRoute({ children }) {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+    });
+    return unsubscribe;
+  }, []);
+
+  if (loading)
+    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
+  if (!user) return <Navigate to="/" replace />;
+
+  return children;
+}
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<Login />} />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
+export default App;
