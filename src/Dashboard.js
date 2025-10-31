@@ -228,7 +228,7 @@ export default function Dashboard() {
     { code: "M2", name: "Alaxan FR", img: "https://cdn.store-assets.com/s/377840/i/19012688.jpg" },
     { code: "M3", name: "Decolgen Forte", img: "https://cdn.tgdd.vn/Products/Images/10022/131076/decolgen-forte-100v-2-1.jpg" },
     { code: "M4", name: "Neozep", img: "https://assets.unilab.com.ph/uploads/Common/Neozep/Z_plus_Forte_768x768.webp" },
-    { code: "M5", name: "Tuseran Forte", img: "https://assets.unilab.com.ph/uploads/Common/Products/Tuseran-Forte/tuseranforte.png" },
+    { code: "M5", name: "Tuseran Forte", img: "https://assets.unilab.com.ph/uploads/Common/Neozep/Z_plus_Forte_768x768.webp" },
   ];
 
   return (
