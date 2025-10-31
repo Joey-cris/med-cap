@@ -21,20 +21,25 @@ function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-      <form
-        onSubmit={handleLogin}
-        className="bg-white p-8 rounded shadow max-w-sm w-full text-center"
-      >
-        {/* LOGO ABOVE ADMIN LOGIN */}
+    <div
+      className="min-h-screen flex items-center justify-center bg-cover bg-center"
+      style={{
+        backgroundImage:
+          "url('https://images.unsplash.com/photo-1580281657529-47d1c11faad5?auto=format&fit=crop&w=1950&q=80')",
+      }}
+    >
+      <div className="bg-white bg-opacity-90 backdrop-blur-sm p-8 rounded-2xl shadow-lg max-w-sm w-full text-center">
+        {/* LOGO */}
         <img
           src="https://www.edarabia.com/wp-content/uploads/2012/05/12.12.jpg"
           alt="Southern Leyte State University Logo"
-          className="mx-auto mb-4 w-24 h-24 object-contain rounded-full"
+          className="mx-auto mb-4 w-24 h-24 object-contain rounded-full shadow-md"
         />
 
         {/* TITLE */}
-        <h2 className="text-2xl mb-6 font-semibold text-gray-800">Admin Login</h2>
+        <h2 className="text-2xl mb-6 font-bold text-blue-800 tracking-wide">
+          Admin Login
+        </h2>
 
         {/* ERROR MESSAGE */}
         {error && <p className="mb-4 text-red-600">{error}</p>}
@@ -43,7 +48,7 @@ function Login() {
         <input
           type="email"
           placeholder="Email"
-          className="w-full p-3 border rounded mb-4"
+          className="w-full p-3 border border-blue-300 rounded mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
           value={email}
           onChange={e => setEmail(e.target.value)}
           required
@@ -53,7 +58,7 @@ function Login() {
         <input
           type="password"
           placeholder="Password"
-          className="w-full p-3 border rounded mb-6"
+          className="w-full p-3 border border-blue-300 rounded mb-6 focus:outline-none focus:ring-2 focus:ring-blue-500"
           value={password}
           onChange={e => setPassword(e.target.value)}
           required
@@ -62,11 +67,16 @@ function Login() {
         {/* LOGIN BUTTON */}
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white py-3 rounded hover:bg-blue-700 transition"
+          className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-semibold shadow-md"
         >
           Login
         </button>
-      </form>
+
+        {/* FOOTER */}
+        <p className="text-gray-500 text-sm mt-6">
+          Southern Leyte State University • College of Medicine
+        </p>
+      </div>
     </div>
   );
 }
