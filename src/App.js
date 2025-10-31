@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { auth } from './firebase';
-import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from "firebase/auth";
+import { onAuthStateChanged, signInWithEmailAndPassword } from "firebase/auth";
 import Dashboard from './Dashboard';
 
 function Login() {
@@ -22,9 +22,24 @@ function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-      <form onSubmit={handleLogin} className="bg-white p-8 rounded shadow max-w-sm w-full">
-        <h2 className="text-2xl mb-6 font-semibold text-center">Admin Login</h2>
+      <form
+        onSubmit={handleLogin}
+        className="bg-white p-8 rounded shadow max-w-sm w-full text-center"
+      >
+        {/* LOGO ABOVE ADMIN LOGIN */}
+        <img
+          src="https://www.edarabia.com/wp-content/uploads/2012/05/12.12.jpg"
+          alt="Southern Leyte State University Logo"
+          className="mx-auto mb-4 w-24 h-24 object-contain rounded-full"
+        />
+
+        {/* TITLE */}
+        <h2 className="text-2xl mb-6 font-semibold text-gray-800">Admin Login</h2>
+
+        {/* ERROR MESSAGE */}
         {error && <p className="mb-4 text-red-600">{error}</p>}
+
+        {/* EMAIL INPUT */}
         <input
           type="email"
           placeholder="Email"
@@ -33,6 +48,8 @@ function Login() {
           onChange={e => setEmail(e.target.value)}
           required
         />
+
+        {/* PASSWORD INPUT */}
         <input
           type="password"
           placeholder="Password"
@@ -41,6 +58,8 @@ function Login() {
           onChange={e => setPassword(e.target.value)}
           required
         />
+
+        {/* LOGIN BUTTON */}
         <button
           type="submit"
           className="w-full bg-blue-600 text-white py-3 rounded hover:bg-blue-700 transition"
@@ -64,7 +83,8 @@ function ProtectedRoute({ children }) {
     return unsubscribe;
   }, []);
 
-  if (loading) return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
+  if (loading)
+    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
 
   if (!user) return <Navigate to="/" replace />;
 
