@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { auth } from './firebase';
-import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from "firebase/auth";
+import { onAuthStateChanged, signInWithEmailAndPassword } from "firebase/auth";
 import Dashboard from './Dashboard';
 
 function Login() {
@@ -23,8 +23,19 @@ function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
       <form onSubmit={handleLogin} className="bg-white p-8 rounded shadow max-w-sm w-full">
+        {/* Logo on top */}
+        <div className="flex justify-center mb-4">
+          <img
+            src="https://www.edarabia.com/wp-content/uploads/2012/05/12.12.jpg"
+            alt="Logo"
+            className="w-20 h-20 object-contain"
+          />
+        </div>
+
         <h2 className="text-2xl mb-6 font-semibold text-center">Admin Login</h2>
+
         {error && <p className="mb-4 text-red-600">{error}</p>}
+
         <input
           type="email"
           placeholder="Email"
@@ -41,6 +52,7 @@ function Login() {
           onChange={e => setPassword(e.target.value)}
           required
         />
+
         <button
           type="submit"
           className="w-full bg-blue-600 text-white py-3 rounded hover:bg-blue-700 transition"
@@ -64,8 +76,8 @@ function ProtectedRoute({ children }) {
     return unsubscribe;
   }, []);
 
-  if (loading) return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
-
+  if (loading)
+    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
   if (!user) return <Navigate to="/" replace />;
 
   return children;
