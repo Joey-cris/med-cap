@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { auth } from './firebase';
 import { onAuthStateChanged, signInWithEmailAndPassword } from "firebase/auth";
 import Dashboard from './Dashboard';
+import logo from 'https://www.edarabia.com/wp-content/uploads/2012/05/12.12.jpg'; 
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -23,12 +24,12 @@ function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
       <form onSubmit={handleLogin} className="bg-white p-8 rounded shadow max-w-sm w-full">
-        {/* Logo on top */}
+        {/* ✅ LOGO ABOVE ADMIN LOGIN */}
         <div className="flex justify-center mb-4">
           <img
             src="https://www.edarabia.com/wp-content/uploads/2012/05/12.12.jpg"
-            alt="Logo"
-            className="w-20 h-20 object-contain"
+            alt="Southern Leyte State University Logo"
+            className="w-[120px] h-[120px] object-contain"
           />
         </div>
 
